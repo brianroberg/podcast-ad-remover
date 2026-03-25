@@ -1,0 +1,14 @@
+[audiobookshelf]
+url = "http://audiobookshelf:13378"
+library_id = "your-library-id-here"
+
+[defaults]
+poll_interval_hours = 12
+
+[[feeds]]
+url = "https://example.com/podcast/feed.xml"
+
+# [[feeds]]
+# url = "https://example.com/another/feed.xml"
+# name = "Custom Display Name"
+# poll_interval_hours = 6
