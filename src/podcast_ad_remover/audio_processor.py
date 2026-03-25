@@ -39,7 +39,11 @@ def remove_ads(audio_path: Path, segments: list[AdSegment], output_path: Path) -
     return output_path
 
 
+AD_GAP_BRIDGE_THRESHOLD = 5.0  # seconds
+
+
 def _merge_segments(segments: list[AdSegment], duration_s: float) -> list[AdSegment]:
+    """Sort, clamp, merge overlapping segments, and bridge small gaps between ads."""
     clamped = []
     for s in segments:
         start = max(0.0, s.start)
@@ -49,6 +53,7 @@ def _merge_segments(segments: list[AdSegment], duration_s: float) -> list[AdSegm
     if not clamped:
         return []
     clamped.sort(key=lambda s: s.start)
+    # Merge overlapping
     merged = [clamped[0]]
     for seg in clamped[1:]:
         prev = merged[-1]
@@ -56,4 +61,13 @@ def _merge_segments(segments: list[AdSegment], duration_s: float) -> list[AdSegm
             merged[-1] = AdSegment(start=prev.start, end=max(prev.end, seg.end))
         else:
             merged.append(seg)
-    return merged
+    # Bridge small gaps between consecutive ad segments
+    bridged = [merged[0]]
+    for seg in merged[1:]:
+        prev = bridged[-1]
+        gap = seg.start - prev.end
+        if gap <= AD_GAP_BRIDGE_THRESHOLD:
+            bridged[-1] = AdSegment(start=prev.start, end=seg.end)
+        else:
+            bridged.append(seg)
+    return bridged
