@@ -19,6 +19,16 @@ Ads commonly appear:
 - In the middle of the episode (mid-roll), interrupting the main content
 - At the end of the episode (post-roll), after the main content concludes
 
+Use audio characteristics to help identify ad boundaries:
+- Ads are typically more heavily produced and compressed than conversational \
+podcast content — they sound louder, more polished, and have less dynamic range.
+- Transitions between ads and program content are often marked by brief silences, \
+jingles, or a noticeable shift in audio quality or production style.
+- Ad segments often feature different speakers (voice-over artists) who do not \
+appear in the main program content.
+- The main program typically sounds like a natural conversation with varying \
+volume, pauses, and a more relaxed production style.
+
 Return your response as a JSON array of objects, where each object has "start" \
 and "end" fields (in seconds, as floating-point numbers). If no advertisements \
 are found, return an empty array [].
