@@ -9,19 +9,25 @@ from podcast_ad_remover.models import AdSegment
 
 logger = logging.getLogger(__name__)
 
-PROMPT = """\
+PROMPT_TEMPLATE = """\
 Listen to this podcast episode and identify all advertisement, sponsorship, \
 and paid promotional segments. For each ad segment, provide the start and end \
 timestamps in seconds.
+{podcast_context}
+Ads commonly appear:
+- At the very beginning of the episode (pre-roll), before the hosts start talking
+- In the middle of the episode (mid-roll), interrupting the main content
+- At the end of the episode (post-roll), after the main content concludes
 
 Return your response as a JSON array of objects, where each object has "start" \
 and "end" fields (in seconds, as floating-point numbers). If no advertisements \
 are found, return an empty array [].
 
 Example response:
-[{"start": 45.0, "end": 120.5}, {"start": 1803.2, "end": 1920.0}]
+[{{"start": 0.0, "end": 65.0}}, {{"start": 1803.2, "end": 1920.0}}]
 
 Important:
+- Ads can start at timestamp 0.0 — do not skip the beginning of the episode.
 - Only include actual advertisements, sponsorships, and paid promotional content.
 - Do not include the podcast's own self-promotion or show notes.
 - Timestamps should be as precise as possible.
@@ -29,8 +35,28 @@ Important:
 """
 
 
+def _build_prompt(podcast_title: str | None = None, podcast_description: str | None = None) -> str:
+    if podcast_title or podcast_description:
+        lines = ["\nThis podcast's subject matter:"]
+        if podcast_title:
+            lines.append(f"- Title: {podcast_title}")
+        if podcast_description:
+            lines.append(f"- Description: {podcast_description}")
+        lines.append(
+            "Any content NOT related to this subject is more likely to be an advertisement.\n"
+        )
+        context = "\n".join(lines)
+    else:
+        context = ""
+    return PROMPT_TEMPLATE.format(podcast_context=context)
+
+
 def detect_ads(
-    audio_path: Path, api_key: str, client: genai.Client | None = None
+    audio_path: Path,
+    api_key: str,
+    client: genai.Client | None = None,
+    podcast_title: str | None = None,
+    podcast_description: str | None = None,
 ) -> list[AdSegment] | None:
     """Send audio to Gemini 2.5 Flash and return detected ad segments.
 
@@ -44,9 +70,10 @@ def detect_ads(
             client = genai.Client(api_key=api_key)
         logger.info("Uploading %s to Gemini for ad detection", audio_path.name)
         uploaded_file = client.files.upload(file=audio_path)
+        prompt = _build_prompt(podcast_title, podcast_description)
         response = client.models.generate_content(
             model="gemini-2.5-flash",
-            contents=[uploaded_file, PROMPT],
+            contents=[uploaded_file, prompt],
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
             ),

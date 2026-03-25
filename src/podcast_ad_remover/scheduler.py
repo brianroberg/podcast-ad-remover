@@ -53,7 +53,7 @@ class Scheduler:
 
     def poll_feed(self, feed: FeedConfig):
         try:
-            podcast_title, episodes = parse_feed(feed.url)
+            podcast_title, podcast_description, episodes = parse_feed(feed.url)
         except Exception:
             logger.exception("Failed to fetch feed: %s", feed.url)
             return
@@ -80,6 +80,7 @@ class Scheduler:
                 with tempfile.TemporaryDirectory() as work_dir:
                     process_episode(
                         episode=episode, feed_url=feed.url, podcast_title=display_name,
+                        podcast_description=podcast_description,
                         library_id=self.config.audiobookshelf.library_id,
                         gemini_api_key=self.gemini_api_key,
                         gemini_client=self.gemini_client,

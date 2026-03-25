@@ -39,6 +39,7 @@ class TestScheduler:
     def test_poll_feed_processes_new_episodes(self, mock_process, mock_parse, scheduler):
         mock_parse.return_value = (
             "Test Podcast",
+            "A test podcast",
             [
                 Episode(guid="ep-1", title="Ep 1", audio_url="https://example.com/ep1.mp3"),
                 Episode(guid="ep-2", title="Ep 2", audio_url="https://example.com/ep2.mp3"),
@@ -52,7 +53,7 @@ class TestScheduler:
     @patch("podcast_ad_remover.scheduler.parse_feed")
     @patch("podcast_ad_remover.scheduler.process_episode")
     def test_poll_feed_uses_custom_name(self, mock_process, mock_parse, scheduler):
-        mock_parse.return_value = ("RSS Title", [
+        mock_parse.return_value = ("RSS Title", "Description", [
             Episode(guid="ep-1", title="Ep 1", audio_url="https://example.com/ep1.mp3"),
         ])
         mock_process.return_value = True
@@ -65,6 +66,7 @@ class TestScheduler:
     def test_poll_feed_continues_on_episode_error(self, mock_parse, scheduler):
         mock_parse.return_value = (
             "Test Podcast",
+            "A test podcast",
             [
                 Episode(guid="ep-1", title="Ep 1", audio_url="https://example.com/ep1.mp3"),
                 Episode(guid="ep-2", title="Ep 2", audio_url="https://example.com/ep2.mp3"),
@@ -85,6 +87,7 @@ class TestScheduler:
     def test_poll_feed_filters_by_earliest_episode(self, mock_process, mock_parse, scheduler):
         mock_parse.return_value = (
             "Test Podcast",
+            "A test podcast",
             [
                 Episode(
                     guid="old", title="Old Ep",
@@ -115,6 +118,7 @@ class TestScheduler:
     ):
         mock_parse.return_value = (
             "Test Podcast",
+            "A test podcast",
             [
                 Episode(
                     guid="no-date", title="No Date Ep",

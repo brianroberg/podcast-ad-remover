@@ -24,6 +24,7 @@ def process_episode(
     state: StateManager,
     work_dir: Path,
     gemini_client: genai.Client | None = None,
+    podcast_description: str | None = None,
 ) -> bool:
     """Process a single podcast episode. Returns True if processed, False if skipped."""
     if state.is_processed(feed_url, episode.guid):
@@ -38,7 +39,13 @@ def process_episode(
     audio_path = download_episode(episode.audio_url, download_dir)
 
     # Detect ads (None = detection failed, [] = no ads found, [...] = ads found)
-    segments = detect_ads(audio_path, api_key=gemini_api_key, client=gemini_client)
+    segments = detect_ads(
+        audio_path,
+        api_key=gemini_api_key,
+        client=gemini_client,
+        podcast_title=podcast_title,
+        podcast_description=podcast_description,
+    )
 
     # Process audio
     if segments is None:

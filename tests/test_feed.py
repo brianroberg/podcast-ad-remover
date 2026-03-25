@@ -52,8 +52,9 @@ class TestParseFeed:
     @patch("podcast_ad_remover.feed.feedparser.parse")
     def test_parse_single_episode(self, mock_parse):
         mock_parse.return_value = _make_feed_dict(entries=[_make_entry()])
-        podcast_title, episodes = parse_feed("https://example.com/feed.xml")
+        podcast_title, podcast_desc, episodes = parse_feed("https://example.com/feed.xml")
         assert podcast_title == "Test Podcast"
+        assert podcast_desc == "A test podcast"
         assert len(episodes) == 1
         ep = episodes[0]
         assert isinstance(ep, Episode)
@@ -76,7 +77,7 @@ class TestParseFeed:
                 ),
             ],
         )
-        _, episodes = parse_feed("https://example.com/feed.xml")
+        _, _, episodes = parse_feed("https://example.com/feed.xml")
         assert [e.guid for e in episodes] == ["ep-1", "ep-2"]
 
     @patch("podcast_ad_remover.feed.feedparser.parse")
@@ -86,7 +87,7 @@ class TestParseFeed:
                 _make_entry(itunes_episode="5", itunes_season="2", itunes_episodetype="bonus")
             ],
         )
-        _, episodes = parse_feed("https://example.com/feed.xml")
+        _, _, episodes = parse_feed("https://example.com/feed.xml")
         assert episodes[0].episode_number == "5"
         assert episodes[0].season_number == "2"
         assert episodes[0].episode_type == "bonus"
@@ -107,13 +108,13 @@ class TestParseFeed:
             ],
         }
         mock_parse.return_value = _make_feed_dict(entries=[entry])
-        _, episodes = parse_feed("https://example.com/feed.xml")
+        _, _, episodes = parse_feed("https://example.com/feed.xml")
         assert len(episodes) == 0
 
     @patch("podcast_ad_remover.feed.feedparser.parse")
     def test_parse_empty_feed(self, mock_parse):
         mock_parse.return_value = _make_feed_dict(entries=[])
-        _, episodes = parse_feed("https://example.com/feed.xml")
+        _, _, episodes = parse_feed("https://example.com/feed.xml")
         assert episodes == []
 
     @patch("podcast_ad_remover.feed.feedparser.parse")
@@ -141,5 +142,5 @@ class TestParseFeed:
             ],
         }
         mock_parse.return_value = _make_feed_dict(entries=[entry])
-        _, episodes = parse_feed("https://example.com/feed.xml")
+        _, _, episodes = parse_feed("https://example.com/feed.xml")
         assert episodes[0].guid == "https://example.com/ep1"

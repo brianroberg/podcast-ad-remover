@@ -8,12 +8,15 @@ from podcast_ad_remover.models import Episode
 logger = logging.getLogger(__name__)
 
 
-def parse_feed(feed_url: str) -> tuple[str, list[Episode]]:
+def parse_feed(feed_url: str) -> tuple[str, str, list[Episode]]:
+    """Parse an RSS feed and return (title, description, episodes oldest-first)."""
     result = feedparser.parse(feed_url)
     if result.get("bozo") and result.get("bozo_exception"):
         raise ValueError(f"Failed to parse feed {feed_url}: {result['bozo_exception']}")
 
-    podcast_title = result.get("feed", {}).get("title", "Unknown Podcast")
+    feed_info = result.get("feed", {})
+    podcast_title = feed_info.get("title", "Unknown Podcast")
+    podcast_description = feed_info.get("subtitle") or feed_info.get("summary", "")
     episodes = []
     for entry in result.get("entries", []):
         audio_url = _extract_audio_url(entry)
@@ -34,7 +37,7 @@ def parse_feed(feed_url: str) -> tuple[str, list[Episode]]:
             )
         )
     episodes.sort(key=_episode_sort_key)
-    return podcast_title, episodes
+    return podcast_title, podcast_description, episodes
 
 
 def _extract_audio_url(entry: dict) -> str | None:
