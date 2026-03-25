@@ -1,9 +1,17 @@
 import logging
+import re
 from pathlib import Path
 
 import httpx
 
 logger = logging.getLogger(__name__)
+
+
+def _sanitize_filename(name: str) -> str:
+    """Remove characters unsafe for filesystem paths."""
+    sanitized = re.sub(r'[<>:"/\\|?*]', "", name)
+    sanitized = sanitized.replace("..", "")
+    return sanitized.strip(". ") or "Untitled Podcast"
 
 
 class AudiobookshelfClient:
@@ -25,18 +33,26 @@ class AudiobookshelfClient:
         title: str | None = None,
         feed_url: str | None = None,
     ) -> dict | None:
-        response = self._client.get(
-            f"{self.base_url}/api/libraries/{library_id}/items",
-            params={"limit": 500},
-        )
-        response.raise_for_status()
-        data = response.json()
-        for item in data.get("results", []):
-            metadata = item.get("media", {}).get("metadata", {})
-            if feed_url and metadata.get("feedUrl") == feed_url:
-                return item
-            if title and metadata.get("title") == title:
-                return item
+        """Find an existing podcast by title or feed URL, paginating through all results."""
+        page = 0
+        page_size = 100
+        while True:
+            response = self._client.get(
+                f"{self.base_url}/api/libraries/{library_id}/items",
+                params={"limit": page_size, "page": page},
+            )
+            response.raise_for_status()
+            data = response.json()
+            results = data.get("results", [])
+            for item in results:
+                metadata = item.get("media", {}).get("metadata", {})
+                if feed_url and metadata.get("feedUrl") == feed_url:
+                    return item
+                if title and metadata.get("title") == title:
+                    return item
+            if len(results) < page_size:
+                break
+            page += 1
         return None
 
     def create_podcast(
@@ -52,7 +68,7 @@ class AudiobookshelfClient:
         folder = library["folders"][0]
         folder_id = folder["id"]
         folder_path = folder["fullPath"]
-        podcast_path = f"{folder_path}/{title}"
+        podcast_path = f"{folder_path}/{_sanitize_filename(title)}"
         payload = {
             "libraryId": library_id,
             "folderId": folder_id,

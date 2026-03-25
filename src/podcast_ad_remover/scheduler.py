@@ -3,6 +3,8 @@ import logging
 import tempfile
 from pathlib import Path
 
+from google import genai
+
 from podcast_ad_remover.audiobookshelf import AudiobookshelfClient
 from podcast_ad_remover.feed import parse_feed
 from podcast_ad_remover.models import AppConfig, FeedConfig
@@ -22,6 +24,7 @@ class Scheduler:
     ):
         self.config = config
         self.gemini_api_key = gemini_api_key
+        self.gemini_client = genai.Client(api_key=gemini_api_key)
         self.data_dir = Path(data_dir)
         self.data_dir.mkdir(parents=True, exist_ok=True)
         self.state = StateManager(self.data_dir / "state.db")
@@ -50,6 +53,7 @@ class Scheduler:
                         episode=episode, feed_url=feed.url, podcast_title=display_name,
                         library_id=self.config.audiobookshelf.library_id,
                         gemini_api_key=self.gemini_api_key,
+                        gemini_client=self.gemini_client,
                         abs_client=self.abs_client, state=self.state, work_dir=Path(work_dir),
                     )
             except Exception:

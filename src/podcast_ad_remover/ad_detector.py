@@ -29,15 +29,19 @@ Important:
 """
 
 
-def detect_ads(audio_path: Path, api_key: str) -> list[AdSegment] | None:
+def detect_ads(
+    audio_path: Path, api_key: str, client: genai.Client | None = None
+) -> list[AdSegment] | None:
     """Send audio to Gemini 2.5 Flash and return detected ad segments.
 
     Returns a list of AdSegment on success (may be empty if no ads found),
     or None if detection failed for any reason (API error, unparseable response).
+    Pass an existing client to avoid creating a new one per call.
     """
     uploaded_file = None
     try:
-        client = genai.Client(api_key=api_key)
+        if client is None:
+            client = genai.Client(api_key=api_key)
         logger.info("Uploading %s to Gemini for ad detection", audio_path.name)
         uploaded_file = client.files.upload(file=audio_path)
         response = client.models.generate_content(

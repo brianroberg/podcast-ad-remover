@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -20,10 +20,12 @@ def app_config():
 
 @pytest.fixture
 def scheduler(app_config):
-    return Scheduler(
-        config=app_config, abs_api_key="abs-key", gemini_api_key="gem-key",
-        data_dir="/tmp/test-data",
-    )
+    with patch("podcast_ad_remover.scheduler.genai") as mock_genai:
+        mock_genai.Client.return_value = MagicMock()
+        return Scheduler(
+            config=app_config, abs_api_key="abs-key", gemini_api_key="gem-key",
+            data_dir="/tmp/test-data",
+        )
 
 
 class TestScheduler:

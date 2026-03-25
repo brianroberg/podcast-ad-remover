@@ -12,7 +12,8 @@ def download_episode(audio_url: str, download_dir: Path) -> Path:
     filename = unquote(Path(parsed.path).name) or "episode.mp3"
     dest = download_dir / filename
     logger.info("Downloading %s to %s", audio_url, dest)
-    with httpx.stream("GET", audio_url, follow_redirects=True) as response:
+    timeout = httpx.Timeout(10.0, read=300.0)
+    with httpx.stream("GET", audio_url, follow_redirects=True, timeout=timeout) as response:
         response.raise_for_status()
         with open(dest, "wb") as f:
             for chunk in response.iter_bytes(chunk_size=8192):

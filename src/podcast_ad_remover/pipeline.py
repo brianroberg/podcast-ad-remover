@@ -1,6 +1,8 @@
 import logging
 from pathlib import Path
 
+from google import genai
+
 from podcast_ad_remover.ad_detector import detect_ads
 from podcast_ad_remover.audio_processor import remove_ads
 from podcast_ad_remover.audiobookshelf import AudiobookshelfClient
@@ -21,6 +23,7 @@ def process_episode(
     abs_client: AudiobookshelfClient,
     state: StateManager,
     work_dir: Path,
+    gemini_client: genai.Client | None = None,
 ) -> bool:
     """Process a single podcast episode. Returns True if processed, False if skipped."""
     if state.is_processed(feed_url, episode.guid):
@@ -35,7 +38,7 @@ def process_episode(
     audio_path = download_episode(episode.audio_url, download_dir)
 
     # Detect ads (None = detection failed, [] = no ads found, [...] = ads found)
-    segments = detect_ads(audio_path, api_key=gemini_api_key)
+    segments = detect_ads(audio_path, api_key=gemini_api_key, client=gemini_client)
 
     # Process audio
     if segments is None:
