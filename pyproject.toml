@@ -10,6 +10,7 @@ dependencies = [
     "mutagen>=1.47",
     "google-genai>=1.0",
     "python-dotenv>=1.0",
+    "audioop-lts>=0.2.2",
 ]
 
 [project.optional-dependencies]
