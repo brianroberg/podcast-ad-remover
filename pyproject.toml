@@ -1,0 +1,35 @@
+[project]
+name = "podcast-ad-remover"
+version = "0.1.0"
+description = "Remove ads from podcast episodes and upload to Audiobookshelf"
+requires-python = ">=3.14"
+dependencies = [
+    "feedparser>=6.0",
+    "httpx>=0.28",
+    "pydub>=0.25",
+    "mutagen>=1.47",
+    "google-genai>=1.0",
+    "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.25",
+    "respx>=0.22",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.ruff]
+target-version = "py314"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
