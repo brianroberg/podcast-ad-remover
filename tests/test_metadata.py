@@ -48,4 +48,4 @@ class TestWriteId3Tags:
         )
         write_id3_tags(mp3_file, episode)
         tags = ID3(mp3_file)
-        assert "2026" in str(tags["TDRC"])
+        assert str(tags["TDRC"]) == "2026-03-25 00:00:00"

@@ -26,7 +26,7 @@ def write_id3_tags(audio_path: Path, episode: Episode):
     if episode.pub_date:
         try:
             dt = parsedate_to_datetime(episode.pub_date)
-            tags["TDRC"] = TDRC(encoding=3, text=str(dt.year))
+            tags["TDRC"] = TDRC(encoding=3, text=dt.strftime("%Y-%m-%dT%H:%M:%S"))
         except Exception:
             logger.debug("Could not parse pub_date for ID3: %s", episode.pub_date)
 
