@@ -12,3 +12,4 @@ url = "https://example.com/podcast/feed.xml"
 # url = "https://example.com/another/feed.xml"
 # name = "Custom Display Name"
 # poll_interval_hours = 6
+# earliest_episode = 2025-01-01  # ignore episodes before this date

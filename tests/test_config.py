@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 import pytest
 
 from podcast_ad_remover.config import load_config
@@ -80,6 +82,50 @@ url = "https://example.com/feed.xml"
         config_path.write_text(config_content)
         with pytest.raises(ValueError, match="url"):
             load_config(config_path)
+
+    def test_load_config_with_earliest_episode_datetime(self, tmp_path):
+        config_content = """\
+[audiobookshelf]
+url = "http://localhost:13378"
+library_id = "lib-123"
+
+[[feeds]]
+url = "https://example.com/feed.xml"
+earliest_episode = 2025-06-01T00:00:00Z
+"""
+        config_path = tmp_path / "config.toml"
+        config_path.write_text(config_content)
+        config = load_config(config_path)
+        assert config.feeds[0].earliest_episode == datetime(2025, 6, 1, tzinfo=timezone.utc)
+
+    def test_load_config_with_earliest_episode_date_only(self, tmp_path):
+        config_content = """\
+[audiobookshelf]
+url = "http://localhost:13378"
+library_id = "lib-123"
+
+[[feeds]]
+url = "https://example.com/feed.xml"
+earliest_episode = 2025-06-01
+"""
+        config_path = tmp_path / "config.toml"
+        config_path.write_text(config_content)
+        config = load_config(config_path)
+        assert config.feeds[0].earliest_episode == datetime(2025, 6, 1, tzinfo=timezone.utc)
+
+    def test_load_config_without_earliest_episode(self, tmp_path):
+        config_content = """\
+[audiobookshelf]
+url = "http://localhost:13378"
+library_id = "lib-123"
+
+[[feeds]]
+url = "https://example.com/feed.xml"
+"""
+        config_path = tmp_path / "config.toml"
+        config_path.write_text(config_content)
+        config = load_config(config_path)
+        assert config.feeds[0].earliest_episode is None
 
     def test_load_config_file_not_found(self, tmp_path):
         with pytest.raises(FileNotFoundError):

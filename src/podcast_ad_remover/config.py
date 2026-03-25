@@ -1,4 +1,5 @@
 import tomllib
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 from podcast_ad_remover.models import AppConfig, AudiobookshelfConfig, FeedConfig
@@ -30,11 +31,18 @@ def load_config(config_path: Path) -> AppConfig:
     for i, raw_feed in enumerate(raw_feeds):
         if "url" not in raw_feed:
             raise ValueError(f"Config feeds[{i}] missing required field: url")
+        earliest = raw_feed.get("earliest_episode")
+        if isinstance(earliest, date) and not isinstance(earliest, datetime):
+            earliest = datetime(earliest.year, earliest.month, earliest.day, tzinfo=timezone.utc)
+        elif isinstance(earliest, datetime) and earliest.tzinfo is None:
+            earliest = earliest.replace(tzinfo=timezone.utc)
+
         feeds.append(
             FeedConfig(
                 url=raw_feed["url"],
                 name=raw_feed.get("name"),
                 poll_interval_hours=raw_feed.get("poll_interval_hours"),
+                earliest_episode=earliest,
             )
         )
 

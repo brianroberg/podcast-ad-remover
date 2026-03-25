@@ -87,6 +87,7 @@ url = "https://example.com/podcast/feed.xml"
 url = "https://example.com/another/feed.xml"
 name = "Custom Display Name"          # Override the podcast name (optional)
 poll_interval_hours = 6               # Override polling interval for this feed (optional)
+earliest_episode = 2025-01-01         # Ignore episodes published before this date (optional)
 ```
 
 ### Environment Variables

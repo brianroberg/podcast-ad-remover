@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import datetime
 
 
 @dataclass
@@ -6,6 +7,7 @@ class FeedConfig:
     url: str
     name: str | None = None
     poll_interval_hours: float | None = None
+    earliest_episode: datetime | None = None
 
 
 @dataclass

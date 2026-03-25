@@ -1,13 +1,15 @@
 import asyncio
 import logging
 import tempfile
+from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 from pathlib import Path
 
 from google import genai
 
 from podcast_ad_remover.audiobookshelf import AudiobookshelfClient
 from podcast_ad_remover.feed import parse_feed
-from podcast_ad_remover.models import AppConfig, FeedConfig
+from podcast_ad_remover.models import AppConfig, Episode, FeedConfig
 from podcast_ad_remover.pipeline import process_episode
 from podcast_ad_remover.state import StateManager
 
@@ -32,6 +34,19 @@ class Scheduler:
             base_url=config.audiobookshelf.url, api_key=abs_api_key,
         )
 
+    @staticmethod
+    def _is_before_cutoff(episode: Episode, cutoff: datetime) -> bool:
+        """Return True if the episode's pub_date is before the cutoff."""
+        if not episode.pub_date:
+            return False
+        try:
+            pub_dt = parsedate_to_datetime(episode.pub_date)
+            if pub_dt.tzinfo is None:
+                pub_dt = pub_dt.replace(tzinfo=timezone.utc)
+            return pub_dt < cutoff
+        except Exception:
+            return False
+
     def _effective_interval_seconds(self, feed: FeedConfig) -> float:
         hours = feed.poll_interval_hours or self.config.default_poll_interval_hours
         return hours * 3600
@@ -44,7 +59,21 @@ class Scheduler:
             return
 
         display_name = feed.name or podcast_title
-        logger.info("Polled '%s': %d episodes found", display_name, len(episodes))
+
+        if feed.earliest_episode:
+            before = len(episodes)
+            cutoff = feed.earliest_episode
+            episodes = [ep for ep in episodes if not self._is_before_cutoff(ep, cutoff)]
+            skipped = before - len(episodes)
+            if skipped:
+                logger.info(
+                    "Polled '%s': %d episodes found, %d skipped (before %s)",
+                    display_name, before, skipped, feed.earliest_episode.date(),
+                )
+            else:
+                logger.info("Polled '%s': %d episodes found", display_name, len(episodes))
+        else:
+            logger.info("Polled '%s': %d episodes found", display_name, len(episodes))
 
         for episode in episodes:
             try:

@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -78,3 +79,54 @@ class TestScheduler:
     def test_poll_feed_handles_feed_error(self, mock_parse, scheduler):
         mock_parse.side_effect = ValueError("Malformed XML")
         scheduler.poll_feed(FeedConfig(url="https://example.com/feed.xml"))
+
+    @patch("podcast_ad_remover.scheduler.parse_feed")
+    @patch("podcast_ad_remover.scheduler.process_episode")
+    def test_poll_feed_filters_by_earliest_episode(self, mock_process, mock_parse, scheduler):
+        mock_parse.return_value = (
+            "Test Podcast",
+            [
+                Episode(
+                    guid="old", title="Old Ep",
+                    audio_url="https://example.com/old.mp3",
+                    pub_date="Mon, 01 Jan 2024 00:00:00 GMT",
+                ),
+                Episode(
+                    guid="new", title="New Ep",
+                    audio_url="https://example.com/new.mp3",
+                    pub_date="Tue, 01 Jan 2030 00:00:00 GMT",
+                ),
+            ],
+        )
+        mock_process.return_value = True
+        feed = FeedConfig(
+            url="https://example.com/feed.xml",
+            earliest_episode=datetime(2025, 1, 1, tzinfo=timezone.utc),
+        )
+        scheduler.poll_feed(feed)
+        assert mock_process.call_count == 1
+        call_kwargs = mock_process.call_args[1]
+        assert call_kwargs["episode"].guid == "new"
+
+    @patch("podcast_ad_remover.scheduler.parse_feed")
+    @patch("podcast_ad_remover.scheduler.process_episode")
+    def test_poll_feed_includes_episodes_without_pub_date(
+        self, mock_process, mock_parse, scheduler,
+    ):
+        mock_parse.return_value = (
+            "Test Podcast",
+            [
+                Episode(
+                    guid="no-date", title="No Date Ep",
+                    audio_url="https://example.com/nodate.mp3",
+                    pub_date="",
+                ),
+            ],
+        )
+        mock_process.return_value = True
+        feed = FeedConfig(
+            url="https://example.com/feed.xml",
+            earliest_episode=datetime(2025, 1, 1, tzinfo=timezone.utc),
+        )
+        scheduler.poll_feed(feed)
+        assert mock_process.call_count == 1

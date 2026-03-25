@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from podcast_ad_remover.models import (
     AdSegment,
     AppConfig,
@@ -13,15 +15,19 @@ class TestFeedConfig:
         assert feed.url == "https://example.com/feed.xml"
         assert feed.name is None
         assert feed.poll_interval_hours is None
+        assert feed.earliest_episode is None
 
     def test_create_full(self):
+        dt = datetime(2025, 6, 1, tzinfo=timezone.utc)
         feed = FeedConfig(
             url="https://example.com/feed.xml",
             name="My Podcast",
             poll_interval_hours=6,
+            earliest_episode=dt,
         )
         assert feed.name == "My Podcast"
         assert feed.poll_interval_hours == 6
+        assert feed.earliest_episode == dt
 
 
 class TestAudiobookshelfConfig:
