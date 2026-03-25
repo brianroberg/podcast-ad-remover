@@ -1,4 +1,5 @@
 import logging
+import re
 from pathlib import Path
 
 from google import genai
@@ -12,6 +13,19 @@ from podcast_ad_remover.models import Episode
 from podcast_ad_remover.state import StateManager
 
 logger = logging.getLogger(__name__)
+
+
+def _episode_filename(episode: Episode) -> str:
+    """Build a clean filename from episode metadata: e.g. '42-my-episode-title.mp3'."""
+    # Clean the title: lowercase, keep only alphanumeric + spaces, then spaces to dashes
+    clean = episode.title.lower()
+    clean = re.sub(r"[^a-z0-9 ]", "", clean)
+    clean = re.sub(r" +", "-", clean.strip())
+    clean = clean or "episode"
+
+    if episode.episode_number:
+        return f"{episode.episode_number}-{clean}.mp3"
+    return f"{clean}.mp3"
 
 
 def process_episode(
@@ -69,6 +83,11 @@ def process_episode(
 
     # Write ID3 metadata
     write_id3_tags(upload_path, episode)
+
+    # Rename to a descriptive filename before upload
+    final_name = _episode_filename(episode)
+    final_path = upload_path.parent / final_name
+    upload_path = upload_path.rename(final_path)
 
     # Ensure podcast exists in Audiobookshelf
     podcast_item = abs_client.find_podcast(library_id, title=podcast_title, feed_url=feed_url)

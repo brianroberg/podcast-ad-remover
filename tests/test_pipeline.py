@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from podcast_ad_remover.models import AdSegment, Episode
-from podcast_ad_remover.pipeline import process_episode
+from podcast_ad_remover.pipeline import _episode_filename, process_episode
 
 PODCAST_ITEM = {
     "id": "li-1",
@@ -215,3 +215,40 @@ class TestProcessEpisode:
 
         assert result is True
         state.mark_processed.assert_called_once()
+
+
+class TestEpisodeFilename:
+    def test_basic_title(self):
+        ep = Episode(guid="1", title="My Great Episode", audio_url="http://x/a.mp3")
+        assert _episode_filename(ep) == "my-great-episode.mp3"
+
+    def test_with_episode_number(self):
+        ep = Episode(
+            guid="1", title="Season Opener", audio_url="http://x/a.mp3",
+            episode_number="42",
+        )
+        assert _episode_filename(ep) == "42-season-opener.mp3"
+
+    def test_strips_special_characters(self):
+        ep = Episode(
+            guid="1", title="What's Up? #100 — The Big Game!",
+            audio_url="http://x/a.mp3",
+        )
+        assert _episode_filename(ep) == "whats-up-100-the-big-game.mp3"
+
+    def test_collapses_multiple_spaces(self):
+        ep = Episode(guid="1", title="Too   Many   Spaces", audio_url="http://x/a.mp3")
+        assert _episode_filename(ep) == "too-many-spaces.mp3"
+
+    def test_empty_title_fallback(self):
+        ep = Episode(guid="1", title="!!!", audio_url="http://x/a.mp3")
+        assert _episode_filename(ep) == "episode.mp3"
+
+    def test_pipe_and_numbers(self):
+        ep = Episode(
+            guid="1",
+            title="2026 New York Mets Season Preview w/ Daniel Murphy | 542",
+            audio_url="http://x/a.mp3",
+            episode_number="542",
+        )
+        assert _episode_filename(ep) == "542-2026-new-york-mets-season-preview-w-daniel-murphy-542.mp3"
