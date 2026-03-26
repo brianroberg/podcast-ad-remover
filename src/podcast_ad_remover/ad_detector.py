@@ -63,18 +63,25 @@ def _build_prompt(podcast_title: str | None = None, podcast_description: str | N
     return PROMPT_TEMPLATE.format(podcast_context=context)
 
 
+NUM_PASSES = 3
+MAJORITY_THRESHOLD = 2  # minimum passes that must agree on a time region
+
+
 def detect_ads(
     audio_path: Path,
     api_key: str,
     client: genai.Client | None = None,
     podcast_title: str | None = None,
     podcast_description: str | None = None,
+    num_passes: int = NUM_PASSES,
 ) -> list[AdSegment] | None:
-    """Send audio to Gemini 2.5 Flash and return detected ad segments.
+    """Run ad detection multiple times and return majority-vote segments.
 
-    Returns a list of AdSegment on success (may be empty if no ads found),
-    or None if detection failed for any reason (API error, unparseable response).
-    Pass an existing client to avoid creating a new one per call.
+    Each millisecond of audio is flagged as an ad only if at least
+    MAJORITY_THRESHOLD out of num_passes runs agree. This reduces both
+    false positives (hallucinated ads) and false negatives (missed ads).
+
+    Returns a list of AdSegment on success, or None if all passes failed.
     """
     uploaded_file = None
     try:
@@ -83,14 +90,32 @@ def detect_ads(
         logger.info("Uploading %s to Gemini for ad detection", audio_path.name)
         uploaded_file = client.files.upload(file=audio_path)
         prompt = _build_prompt(podcast_title, podcast_description)
-        response = client.models.generate_content(
-            model="gemini-2.5-pro",
-            contents=[uploaded_file, prompt],
-            config=types.GenerateContentConfig(
-                response_mime_type="application/json",
-            ),
-        )
-        return _parse_response(response.text)
+
+        all_runs: list[list[AdSegment]] = []
+        for i in range(num_passes):
+            logger.info("Ad detection pass %d/%d for %s", i + 1, num_passes, audio_path.name)
+            try:
+                response = client.models.generate_content(
+                    model="gemini-2.5-pro",
+                    contents=[uploaded_file, prompt],
+                    config=types.GenerateContentConfig(
+                        response_mime_type="application/json",
+                    ),
+                )
+                segments = _parse_response(response.text)
+                if segments is not None:
+                    all_runs.append(segments)
+            except Exception:
+                logger.exception("Ad detection pass %d failed for %s", i + 1, audio_path.name)
+
+        if not all_runs:
+            return None
+
+        if len(all_runs) == 1:
+            return all_runs[0]
+
+        return _majority_vote(all_runs)
+
     except Exception:
         logger.exception("Ad detection failed for %s", audio_path.name)
         return None
@@ -100,6 +125,39 @@ def detect_ads(
                 client.files.delete(name=uploaded_file.name)
             except Exception:
                 logger.warning("Failed to clean up uploaded file %s", uploaded_file.name)
+
+
+def _majority_vote(runs: list[list[AdSegment]]) -> list[AdSegment]:
+    """Combine multiple detection runs using majority vote at millisecond resolution."""
+    # Find the max endpoint across all runs
+    max_end_ms = 0
+    for run in runs:
+        for seg in run:
+            max_end_ms = max(max_end_ms, int(seg.end * 1000) + 1)
+
+    # Count how many runs flag each millisecond
+    counts = [0] * max_end_ms
+    for run in runs:
+        for seg in run:
+            for ms in range(int(seg.start * 1000), min(int(seg.end * 1000), max_end_ms)):
+                counts[ms] += 1
+
+    # Keep milliseconds that meet the majority threshold
+    threshold = min(MAJORITY_THRESHOLD, len(runs))
+    segments: list[AdSegment] = []
+    in_seg = False
+    start = 0
+    for i, c in enumerate(counts):
+        if c >= threshold and not in_seg:
+            start = i
+            in_seg = True
+        elif c < threshold and in_seg:
+            segments.append(AdSegment(start=start / 1000, end=i / 1000))
+            in_seg = False
+    if in_seg:
+        segments.append(AdSegment(start=start / 1000, end=max_end_ms / 1000))
+
+    return segments
 
 
 def _parse_response(response_text: str) -> list[AdSegment] | None:
