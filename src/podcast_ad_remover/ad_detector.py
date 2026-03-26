@@ -15,9 +15,11 @@ and paid promotional segments. For each ad segment, provide the start and end \
 timestamps in seconds.
 {podcast_context}
 Ads commonly appear:
-- At the very beginning of the episode (pre-roll), before the hosts start talking
-- In the middle of the episode (mid-roll), interrupting the main content
-- At the end of the episode (post-roll), after the main content concludes
+- At the very beginning of the episode (pre-roll), before the hosts start talking. \
+Pre-roll ads often start at timestamp 0.0.
+- In the middle of the episode (mid-roll), interrupting the main content.
+- At the end of the episode (post-roll), often running to the very end of the audio.
+- Each ad break typically contains multiple ~30-second ads back-to-back.
 
 Use audio characteristics to help identify ad boundaries:
 - Ads are typically more heavily produced and compressed than conversational \
