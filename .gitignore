@@ -4,3 +4,4 @@ __pycache__/
 .venv/
 .claude/
 config.toml
+golden-set/

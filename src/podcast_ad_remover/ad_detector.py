@@ -82,7 +82,7 @@ def detect_ads(
         uploaded_file = client.files.upload(file=audio_path)
         prompt = _build_prompt(podcast_title, podcast_description)
         response = client.models.generate_content(
-            model="gemini-2.5-flash",
+            model="gemini-2.5-pro",
             contents=[uploaded_file, prompt],
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
